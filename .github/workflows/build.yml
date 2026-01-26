@@ -2,7 +2,7 @@ name: PlatformIO CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, facade-refactor ]
   pull_request:
     branches: [ main ]
 
@@ -10,11 +10,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     
+    strategy:
+      matrix:
+        environment: [f5_test, f5_full, ws2812_test, ws2812_full]
+    
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Cache PlatformIO
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.platformio
@@ -24,7 +28,7 @@ jobs:
           ${{ runner.os }}-pio-
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
     
@@ -33,18 +37,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install platformio
     
-    - name: Build Debug
-      run: pio run -e nanoatmega328
-    
-    - name: Build Release
-      run: pio run -e nanoatmega328_release
+    - name: Build ${{ matrix.environment }}
+      run: pio run -e ${{ matrix.environment }}
     
     - name: Check Size
-      run: pio run --target size
+      run: pio run -e ${{ matrix.environment }} --target size
     
     - name: Upload firmware artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: firmware
-        path: .pio/build/nanoatmega328/firmware.hex
+        name: firmware-${{ matrix.environment }}
+        path: .pio/build/*/firmware.hex
         retention-days: 30
