@@ -2,7 +2,7 @@ name: PlatformIO CI
 
 on:
   push:
-    branches: [ main, develop, facade-refactor ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
 
@@ -12,10 +12,21 @@ jobs:
     
     strategy:
       matrix:
-        environment: [f5_test, f5_full, ws2812_test, ws2812_full]
+        include:
+          - env: f5_test
+            name: "F5 LED Test"
+          - env: f5_full
+            name: "F5 Full (with motion)"
+          - env: ws2812_test
+            name: "WS2812B Test"
+          - env: ws2812_full
+            name: "WS2812B Full (with motion)"
+    
+    name: Build ${{ matrix.name }}
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Cache PlatformIO
       uses: actions/cache@v4
@@ -32,20 +43,15 @@ jobs:
       with:
         python-version: '3.11'
     
-    - name: Install PlatformIO
+    - name: Install PlatformIO Core
       run: |
         python -m pip install --upgrade pip
-        pip install platformio
+        pip install --upgrade platformio
     
-    - name: Build ${{ matrix.environment }}
-      run: pio run -e ${{ matrix.environment }}
+    - name: Build firmware - ${{ matrix.name }}
+      run: pio run -e ${{ matrix.env }}
     
-    - name: Check Size
-      run: pio run -e ${{ matrix.environment }} --target size
+    - name: Check memory usage
+      run: pio run -e ${{ matrix.env }} --target size
     
-    - name: Upload firmware artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: firmware-${{ matrix.environment }}
-        path: .pio/build/*/firmware.hex
-        retention-days: 30
+    - name: Upl
